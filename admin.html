@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin · Maria Laura</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --vermelho: #dc2626;
+            --vermelho-escuro: #b91c1c;
+            --vermelho-claro: #fef2f2;
+            --vermelho-borda: #fecaca;
+            --branco: #ffffff;
+            --cinza-bg: #f5f7fa;
+            --cinza-borda: #e4e8ef;
+            --texto: #1a1a1a;
+            --texto-suave: #6b7a90;
+            --verde: #16a34a;
+            --verde-bg: #dcfce7;
+            --verde-borda: #86efac;
+            --sombra-md: 0 4px 12px rgba(220,38,38,0.08);
+            --sombra-lg: 0 10px 30px rgba(220,38,38,0.12);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { overflow-x: hidden; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--cinza-bg);
+            color: var(--texto);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        #login-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #login-screen::before,
+        #login-screen::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.06);
+            pointer-events: none;
+        }
+        #login-screen::before { width: 600px; height: 600px; top: -300px; right: -200px; }
+        #login-screen::after { width: 500px; height: 500px; bottom: -250px; left: -150px; }
+
+        .login-box {
+            background: var(--branco);
+            padding: 48px 40px;
+            border-radius: 24px;
+            box-shadow: 0 25px 60px -12px rgba(0,0,0,0.4);
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            border-top: 4px solid var(--vermelho);
+        }
+
+        .login-logo {
+            width: 72px; height: 72px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, var(--vermelho), var(--vermelho-escuro));
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 8px 20px rgba(220,38,38,0.3);
+            border: 2px solid var(--vermelho);
+        }
+
+        .login-box h1 {
+            font-family: 'Playfair Display', serif;
+            color: var(--texto);
+            font-size: 1.85rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .login-box p {
+            color: var(--texto-suave);
+            margin-bottom: 32px;
+            font-size: 0.9rem;
+        }
+
+        .input-wrap { position: relative; margin-bottom: 16px; }
+
+        .input-wrap input {
+            width: 100%;
+            padding: 14px 16px 14px 46px;
+            border: 2px solid var(--cinza-borda);
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s;
+            background: var(--cinza-bg);
+            color: var(--texto);
+        }
+
+        .input-wrap input:focus {
+            outline: none;
+            border-color: var(--vermelho);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(220,38,38,0.1);
+        }
+
+        .input-wrap .icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.1rem;
+            opacity: 0.5;
+        }
+
+        .login-box button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--vermelho), var(--vermelho-escuro));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+            margin-top: 8px;
+        }
+
+        .login-box button:hover:not(:disabled) {
+            background: linear-gradient(135deg, var(--vermelho-escuro), #991b1b);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(220,38,38,0.35);
+        }
+
+        .login-box button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .erro-senha {
+            color: var(--vermelho);
+            font-size: 0.9rem;
+            margin-top: 16px;
+            font-weight: 500;
+            padding: 10px;
+            background: var(--vermelho-claro);
+            border-radius: 8px;
+            display: none;
+        }
+
+        #painel { display: none; padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header-titulo { display: flex; align-items: center; gap: 14px; min-width: 0; }
+
+        .header-icone {
+            width: 52px; height: 52px;
+            background: linear-gradient(135deg, var(--vermelho), var(--vermelho-escuro));
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            box-shadow: 0 6px 16px rgba(220,38,38,0.25);
+            flex-shrink: 0;
+            border: 2px solid var(--vermelho);
+        }
+
+        .header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--texto);
+            line-height: 1.2;
+        }
+
+        .header .subtitulo {
+            font-size: 0.85rem;
+            color: var(--texto-suave);
+            margin-top: 3px;
+        }
+
+        .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn {
+            padding: 11px 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .btn-vermelho {
+            background: linear-gradient(135deg, var(--vermelho), var(--vermelho-escuro));
+            color: white;
+            box-shadow: 0 2px 8px rgba(220,38,38,0.25);
+        }
+        .btn-vermelho:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(220,38,38,0.35); }
+
+        .btn-branco {
+            background: white;
+            color: var(--texto);
+            border: 1.5px solid var(--cinza-borda);
+        }
+        .btn-branco:hover { background: var(--cinza-bg); border-color: var(--vermelho); color: var(--vermelho); }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 22px;
+            border-radius: 16px;
+            box-shadow: var(--sombra-md);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: all 0.2s;
+            border-left: 4px solid var(--vermelho);
+            min-width: 0;
+        }
+
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--sombra-lg); }
+
+        .stat-icone {
+            width: 56px; height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, var(--vermelho), var(--vermelho-escuro));
+            color: white;
+        }
+
+        .stat-info { flex: 1; min-width: 0; }
+
+        .stat-numero {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.1rem;
+            font-weight: 700;
+            color: var(--texto);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--texto-suave);
+            margin-top: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .filtros {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: var(--sombra-md);
+            margin-bottom: 20px;
+            border-left: 4px solid var(--vermelho);
+        }
+
+        .filtros-titulo {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--vermelho);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 14px;
+        }
+
+        .filtros-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .campo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+        .campo label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--texto-suave);
+            text-transform: uppercase;
+        }
+
+        .campo input {
+            padding: 11px 14px;
+            border: 2px solid var(--cinza-borda);
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            background: var(--cinza-bg);
+            width: 100%;
+            min-width: 0;
+            color: var(--texto);
+        }
+
+        .campo input:focus {
+            outline: none;
+            border-color: var(--vermelho);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(220,38,38,0.1);
+        }
+
+        .btn-limpar {
+            padding: 11px 18px;
+            background: var(--cinza-bg);
+            border: 2px solid var(--cinza-borda);
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            color: var(--texto-suave);
+            white-space: nowrap;
+        }
+
+        .btn-limpar:hover { background: var(--vermelho); border-color: var(--vermelho); color: white; }
+
+        .tabela-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--sombra-md);
+            overflow: hidden;
+            border: 1px solid var(--cinza-borda);
+        }
+
+        .tabela-header {
+            padding: 18px 22px;
+            background: linear-gradient(135deg, var(--vermelho), var(--vermelho-escuro));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .tabela-header h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        .tabela-header .count {
+            font-size: 0.8rem;
+            color: white;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .tabela-wrap { overflow-x: auto; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+            min-width: 800px;
+        }
+
+        thead { background: linear-gradient(135deg, var(--vermelho), var(--vermelho-escuro)); }
+
+        th {
+            padding: 16px 14px;
+            text-align: left;
+            font-weight: 700;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: white;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            border-bottom: 2px solid var(--vermelho-escuro);
+        }
+
+        th:hover { color: var(--vermelho-claro); }
+        th .sort-icon { opacity: 0.5; margin-left: 4px; font-size: 0.7rem; }
+        th.ativo .sort-icon { opacity: 1; }
+
+        td {
+            padding: 16px 14px;
+            border-bottom: 1px solid var(--cinza-borda);
+            vertical-align: middle;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            color: var(--texto);
+        }
+
+        tbody tr { transition: background 0.15s; }
+        tbody tr:hover { background: #fafbfd; }
+        tbody tr:last-child td { border-bottom: none; }
+
+        .nome-cell { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+        .avatar {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--vermelho), var(--vermelho-escuro));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+            text-transform: uppercase;
+            border: 2px solid var(--vermelho);
+            box-shadow: 0 2px 6px rgba(220,38,38,0.15);
+        }
+
+        .nome-texto {
+            min-width: 0;
+            font-weight: 600;
+            color: var(--texto);
+            word-break: break-word;
+            line-height: 1.3;
+        }
+
+        .whatsapp-cell { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+
+        .whatsapp-texto { font-size: 0.85rem; color: var(--texto); font-weight: 500; }
+
+        .btn-wpp {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            background: var(--verde-bg);
+            color: var(--verde);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            border: 1px solid var(--verde-borda);
+        }
+
+        .btn-wpp:hover { background: var(--verde); color: white; transform: scale(1.08); }
+
+        .msg-cell { max-width: 320px; }
+
+        .msg-preview {
+            color: var(--texto-suave);
+            font-style: italic;
+            font-size: 0.85rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            word-break: break-word;
+            line-height: 1.4;
+        }
+
+        .msg-vazia { color: #cbd5e1; font-style: italic; }
+
+        .data-cell {
+            font-size: 0.82rem;
+            color: var(--texto-suave);
+            white-space: nowrap;
+            line-height: 1.4;
+        }
+
+        .data-cell .hora {
+            display: block;
+            font-weight: 700;
+            color: var(--vermelho);
+            font-size: 0.9rem;
+        }
+
+        .status-cell { text-align: center; }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: var(--verde-bg);
+            color: var(--verde);
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            border: 1px solid var(--verde-borda);
+            white-space: nowrap;
+        }
+
+        .status-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--verde);
+        }
+
+        .acoes-cell { text-align: center; }
+
+        .acoes {
+            display: inline-flex;
+            gap: 6px;
+            justify-content: center;
+        }
+
+        .btn-icon {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            border: 1.5px solid var(--cinza-borda);
+            background: white;
+            color: var(--texto);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.95rem;
+            text-decoration: none;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn-icon:hover {
+            background: var(--vermelho);
+            color: white;
+            border-color: var(--vermelho);
+            transform: translateY(-1px);
+        }
+
+        .btn-icon.btn-ver:hover {
+            background: var(--vermelho-escuro);
+            border-color: var(--vermelho-escuro);
+        }
+
+        .btn-icon.btn-del:hover {
+            background: var(--vermelho-escuro);
+            border-color: var(--vermelho-escuro);
+        }
+
+        .btn-icon:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .estado-vazio { padding: 60px 20px; text-align: center; }
+        .estado-vazio .emoji { font-size: 3rem; margin-bottom: 12px; opacity: 0.5; }
+        .estado-vazio h3 { font-family: 'Playfair Display', serif; color: var(--texto); margin-bottom: 6px; font-size: 1.2rem; }
+        .estado-vazio p { color: var(--texto-suave); font-size: 0.9rem; }
+
+        .loading-box { padding: 60px 20px; text-align: center; }
+
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid var(--cinza-borda);
+            border-top-color: var(--vermelho);
+            border-radius: 50%;
+            margin: 0 auto 14px;
+            animation: girar 0.8s linear infinite;
+        }
+
+        @keyframes girar { to { transform: rotate(360deg); } }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: linear-gradient(135deg, var(--vermelho), var(--vermelho-escuro));
+            color: white;
+            padding: 14px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: 0 10px 30px rgba(220,38,38,0.4);
+            opacity: 0;
+            transition: all 0.4s ease;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            max-width: 90vw;
+        }
+
+        .toast.visivel { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .toast.sucesso { background: linear-gradient(135deg, var(--verde), #15803d); box-shadow: 0 10px 30px rgba(22,163,74,0.4); }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(26,26,26,0.7);
+            backdrop-filter: blur(6px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.ativo { display: flex; }
+
+        .modal {
+            background: var(--cinza-bg);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 520px;
+            box-shadow: 0 25px 60px -12px rgba(0,0,0,0.4);
+            animation: aparecer 0.3s ease;
+            max-height: 92vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes aparecer {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .modal-header {
+            padding: 26px 24px;
+            background: linear-gradient(135deg, var(--vermelho), var(--vermelho-escuro));
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-width: 0;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .modal-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, white, rgba(255,255,255,0.5), white);
+        }
+
+        .modal-header .avatar {
+            width: 60px; height: 60px;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+            background: white;
+            color: var(--vermelho);
+            border: 3px solid white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .modal-header .header-info { min-width: 0; flex: 1; }
+
+        .modal-header .tag-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: white;
+            background: rgba(22,163,74,0.35);
+            padding: 3px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 6px;
+            border: 1px solid rgba(255,255,255,0.4);
+        }
+
+        .modal-header .tag-status::before {
+            content: '';
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: #86efac;
+        }
+
+        .modal-header h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: white;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.2;
+            word-break: break-word;
+        }
+
+        .modal-header .tel {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.9);
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            line-height: 1;
+        }
+
+        .modal-close:hover { background: rgba(255,255,255,0.35); transform: rotate(90deg); }
+
+        .modal-body {
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            flex: 1;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 14px;
+            padding: 16px;
+            border: 1.5px solid var(--cinza-borda);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+
+        .info-card:hover {
+            border-color: var(--vermelho);
+            box-shadow: 0 4px 12px rgba(220,38,38,0.1);
+        }
+
+        .info-card .icone { font-size: 1.3rem; margin-bottom: 6px; }
+
+        .info-card .rotulo {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: var(--texto-suave);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .info-card .valor {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--texto);
+            word-break: break-word;
+        }
+
+        .info-card .valor.pequeno {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .msg-card {
+            background: white;
+            border-radius: 14px;
+            padding: 20px;
+            border: 1.5px solid var(--cinza-borda);
+            position: relative;
+            border-left: 4px solid var(--vermelho);
+        }
+
+        .msg-card .msg-titulo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--texto-suave);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 12px;
+        }
+
+        .msg-card .msg-titulo .icone { font-size: 1rem; }
+
+        .msg-card .msg-conteudo {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.98rem;
+            line-height: 1.65;
+            color: var(--texto);
+            font-style: italic;
+            white-space: pre-wrap;
+            word-break: break-word;
+            padding-left: 26px;
+            position: relative;
+        }
+
+        .msg-card .msg-conteudo::before {
+            content: '"';
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            color: var(--vermelho);
+            position: absolute;
+            top: -12px;
+            left: 0;
+            line-height: 1;
+            opacity: 0.6;
+        }
+
+        .msg-card .msg-conteudo.sem-aspas::before { display: none; }
+
+        .modal-footer {
+            padding: 16px 22px;
+            display: flex;
+            gap: 10px;
+            border-top: 1.5px solid var(--cinza-borda);
+            flex-wrap: wrap;
+            background: white;
+            border-radius: 0 0 20px 20px;
+            flex-shrink: 0;
+        }
+
+        .modal-footer .btn { flex: 1; padding: 13px 16px; font-size: 0.9rem; justify-content: center; }
+
+        @media (max-width: 900px) {
+            .filtros-grid { grid-template-columns: 1fr 1fr; }
+            .filtros-grid .campo-busca { grid-column: 1 / -1; }
+            .filtros-grid .btn-limpar { grid-column: 1 / -1; }
+        }
+
+        @media (max-width: 640px) {
+            #painel { padding: 14px; }
+            .header { flex-direction: column; align-items: stretch; gap: 14px; }
+            .header h1 { font-size: 1.3rem; }
+            .header-icone { width: 44px; height: 44px; font-size: 1.2rem; }
+            .header-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+            .header-actions .btn { padding: 10px 6px; font-size: 0.72rem; justify-content: center; }
+
+            .stats { grid-template-columns: 1fr; gap: 12px; }
+            .stat-card { padding: 16px; }
+            .stat-numero { font-size: 1.6rem; }
+            .stat-icone { width: 48px; height: 48px; font-size: 1.3rem; }
+
+            .filtros { padding: 16px; }
+            .filtros-grid { grid-template-columns: 1fr; gap: 10px; }
+            .tabela-header { padding: 14px 16px; }
+            .tabela-header h2 { font-size: 1rem; }
+
+            .tabela-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            table { min-width: 700px; font-size: 0.82rem; }
+            th, td { padding: 12px 10px; }
+            .avatar { width: 34px; height: 34px; font-size: 0.75rem; }
+            .msg-cell { max-width: 200px; }
+
+            .modal { max-width: 100%; border-radius: 16px; }
+            .modal-header { padding: 22px 18px; }
+            .modal-header .avatar { width: 52px; height: 52px; font-size: 1.1rem; }
+            .modal-header h3 { font-size: 1.15rem; }
+            .modal-body { padding: 16px; gap: 12px; }
+            .modal-footer { padding: 14px 18px; }
+            .modal-footer .btn { padding: 12px 14px; font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <div class="login-logo">🔐</div>
+            <h1>Painel Admin</h1>
+            <p>Maria Laura · Capuchinho Vermelho</p>
+            <div class="input-wrap">
+                <span class="icon">🔑</span>
+                <input type="password" id="senha" placeholder="Digite a senha" autocomplete="off">
+            </div>
+            <button onclick="fazerLogin()" id="btn-login">Entrar no painel</button>
+            <div class="erro-senha" id="erro-senha"></div>
+        </div>
+    </div>
+
+    <div id="painel">
+        <div class="header">
+            <div class="header-titulo">
+                <div class="header-icone">👑</div>
+                <div style="min-width:0;">
+                    <h1>Confirmações</h1>
+                    <div class="subtitulo">Maria Laura · 31 de Outubro · 18h</div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-branco" onclick="carregarDados()">🔄 Atualizar</button>
+                <button class="btn btn-vermelho" onclick="exportarCSV()">📥 CSV</button>
+                <button class="btn btn-branco" onclick="sair()">Sair</button>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-icone">✅</div>
+                <div class="stat-info">
+                    <div class="stat-numero" id="stat-confirmacoes">0</div>
+                    <div class="stat-label">Confirmações</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="filtros">
+            <div class="filtros-titulo">🔎 Filtrar resultados</div>
+            <div class="filtros-grid">
+                <div class="campo campo-busca">
+                    <label>Buscar</label>
+                    <input type="text" id="busca" placeholder="Nome ou telefone..." oninput="aplicarFiltros()">
+                </div>
+                <div class="campo">
+                    <label>Data inicial</label>
+                    <input type="date" id="data-inicio" onchange="aplicarFiltros()">
+                </div>
+                <div class="campo">
+                    <label>Data final</label>
+                    <input type="date" id="data-fim" onchange="aplicarFiltros()">
+                </div>
+                <button class="btn-limpar" onclick="limparFiltros()">Limpar</button>
+            </div>
+        </div>
+
+        <div class="tabela-container">
+            <div class="tabela-header">
+                <h2>Lista de Convidados</h2>
+                <span class="count" id="contador">0 resultados</span>
+            </div>
+
+            <div id="loading" class="loading-box">
+                <div class="spinner"></div>
+                <div style="color: var(--texto-suave); font-size: 0.9rem;">Carregando confirmações...</div>
+            </div>
+
+            <div id="vazio" class="estado-vazio" style="display: none;">
+                <div class="emoji">📭</div>
+                <h3>Nenhuma confirmação ainda</h3>
+                <p>Os convidados que confirmarem vão aparecer aqui</p>
+            </div>
+
+            <div class="tabela-wrap" id="tabela-wrap" style="display: none;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th onclick="ordenar('nome')" id="th-nome" style="min-width:180px;">Nome <span class="sort-icon">↕</span></th>
+                            <th style="min-width:150px;">WhatsApp</th>
+                            <th style="min-width:250px;">Mensagem</th>
+                            <th onclick="ordenar('created_at')" id="th-created_at" style="min-width:110px;">Data <span class="sort-icon">↕</span></th>
+                            <th style="text-align:center; min-width:130px;">Status</th>
+                            <th style="text-align:center; min-width:100px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <div class="modal-overlay" id="modal" onclick="fecharModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <button class="modal-close" onclick="fecharModal()" title="Fechar">&times;</button>
+                <div class="avatar" id="modal-avatar">?</div>
+                <div class="header-info">
+                    <span class="tag-status">Confirmado</span>
+                    <h3 id="modal-nome">Nome</h3>
+                    <div class="tel">📱 <span id="modal-tel">Telefone</span></div>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <div class="info-card">
+                    <div class="icone">🕐</div>
+                    <div class="rotulo">Confirmação</div>
+                    <div class="valor pequeno" id="modal-data">-</div>
+                </div>
+
+                <div class="msg-card" id="modal-msg-wrap">
+                    <div class="msg-titulo">
+                        <span class="icone">💌</span>
+                        Mensagem
+                    </div>
+                    <div class="msg-conteudo" id="modal-msg"></div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-branco" onclick="fecharModal()">Fechar</button>
+                <a class="btn btn-vermelho" id="modal-wpp" target="_blank">💬 WhatsApp</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://ywzzmmtajsykxdtmtriy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3enptbXRhanN5a3hkdG10cml5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MTgxMDIsImV4cCI6MjEwNjk5NDEwMn0.Uwu5udnfhp0ll2oruPl4gE0wbRxogs4rpZcMYOiuEss';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let dadosGlobais = [];
+        let dadosFiltrados = [];
+        let ordenacaoAtual = { campo: 'created_at', dir: 'desc' };
+
+        function mostrarToast(msg, tipo = 'sucesso') {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast visivel ' + tipo;
+            setTimeout(() => toast.classList.remove('visivel'), 3000);
+        }
+
+        async function fazerLogin() {
+            const senha = document.getElementById('senha').value.trim();
+            const btn = document.getElementById('btn-login');
+            const erroEl = document.getElementById('erro-senha');
+
+            if (!senha) { mostrarErro('Digite a senha'); return; }
+
+            btn.disabled = true;
+            btn.textContent = 'Verificando...';
+            erroEl.style.display = 'none';
+
+            try {
+                const { data, error } = await _supabase
+                    .from('admins').select('senha').eq('senha', senha).maybeSingle();
+
+                if (error) throw error;
+
+                if (data) {
+                    sessionStorage.setItem('admin_logado', 'true');
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('painel').style.display = 'block';
+                    carregarDados();
+                } else {
+                    mostrarErro('❌ Senha incorreta');
+                    document.getElementById('senha').value = '';
+                }
+            } catch (e) {
+                console.error(e);
+                mostrarErro('Erro ao verificar senha.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Entrar no painel';
+            }
+        }
+
+        function mostrarErro(msg) {
+            const el = document.getElementById('erro-senha');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        document.getElementById('senha').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') fazerLogin();
+        });
+
+        window.addEventListener('load', () => {
+            if (sessionStorage.getItem('admin_logado') === 'true') {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('painel').style.display = 'block';
+                carregarDados();
+            }
+        });
+
+        function sair() {
+            if (confirm('Deseja sair do painel?')) {
+                sessionStorage.removeItem('admin_logado');
+                location.reload();
+            }
+        }
+
+        async function carregarDados() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('tabela-wrap').style.display = 'none';
+            document.getElementById('vazio').style.display = 'none';
+
+            const { data, error } = await _supabase
+                .from('confirmacoes').select('*').order('created_at', { ascending: false });
+
+            document.getElementById('loading').style.display = 'none';
+
+            if (error) {
+                console.error('Erro:', error);
+                mostrarToast('Erro ao carregar: ' + error.message, 'erro');
+                return;
+            }
+
+            dadosGlobais = data || [];
+            aplicarFiltros();
+        }
+
+        function aplicarFiltros() {
+            const busca = document.getElementById('busca').value.toLowerCase().trim();
+            const dataInicio = document.getElementById('data-inicio').value;
+            const dataFim = document.getElementById('data-fim').value;
+
+            dadosFiltrados = dadosGlobais.filter(item => {
+                const matchBusca = !busca ||
+                    (item.nome || '').toLowerCase().includes(busca) ||
+                    (item.telefone || '').toLowerCase().includes(busca);
+
+                let matchData = true;
+                if (dataInicio || dataFim) {
+                    const dataItem = new Date(item.created_at);
+                    if (dataInicio) {
+                        const di = new Date(dataInicio + 'T00:00:00');
+                        if (dataItem < di) matchData = false;
+                    }
+                    if (dataFim) {
+                        const df = new Date(dataFim + 'T23:59:59');
+                        if (dataItem > df) matchData = false;
+                    }
+                }
+                return matchBusca && matchData;
+            });
+
+            ordenarDados();
+            renderizarTabela();
+            atualizarStats();
+        }
+
+        function limparFiltros() {
+            document.getElementById('busca').value = '';
+            document.getElementById('data-inicio').value = '';
+            document.getElementById('data-fim').value = '';
+            aplicarFiltros();
+        }
+
+        function ordenar(campo) {
+            if (ordenacaoAtual.campo === campo) {
+                ordenacaoAtual.dir = ordenacaoAtual.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+                ordenacaoAtual.campo = campo;
+                ordenacaoAtual.dir = 'asc';
+            }
+            ordenarDados();
+            renderizarTabela();
+            atualizarIndicadores();
+        }
+
+        function ordenarDados() {
+            const { campo, dir } = ordenacaoAtual;
+            dadosFiltrados.sort((a, b) => {
+                let va = a[campo];
+                let vb = b[campo];
+                if (campo === 'created_at') {
+                    va = new Date(va).getTime();
+                    vb = new Date(vb).getTime();
+                } else if (typeof va === 'string') {
+                    va = (va || '').toLowerCase();
+                    vb = (vb || '').toLowerCase();
+                }
+                if (va < vb) return dir === 'asc' ? -1 : 1;
+                if (va > vb) return dir === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        function atualizarIndicadores() {
+            document.querySelectorAll('th').forEach(th => {
+                th.classList.remove('ativo');
+                const ic = th.querySelector('.sort-icon');
+                if (ic) ic.textContent = '↕';
+            });
+            const th = document.getElementById('th-' + ordenacaoAtual.campo);
+            if (th) {
+                th.classList.add('ativo');
+                const ic = th.querySelector('.sort-icon');
+                if (ic) ic.textContent = ordenacaoAtual.dir === 'asc' ? '↑' : '↓';
+            }
+        }
+
+        function renderizarTabela() {
+            const tbody = document.getElementById('tabela-body');
+            const tabelaWrap = document.getElementById('tabela-wrap');
+            const vazio = document.getElementById('vazio');
+            const contador = document.getElementById('contador');
+
+            tbody.innerHTML = '';
+            contador.textContent = `${dadosFiltrados.length} resultado${dadosFiltrados.length !== 1 ? 's' : ''}`;
+
+            if (dadosFiltrados.length === 0) {
+                tabelaWrap.style.display = 'none';
+                vazio.style.display = 'block';
+                vazio.querySelector('h3').textContent = dadosGlobais.length === 0
+                    ? 'Nenhuma confirmação ainda'
+                    : 'Nenhum resultado encontrado';
+                vazio.querySelector('p').textContent = dadosGlobais.length === 0
+                    ? 'Os convidados que confirmarem vão aparecer aqui'
+                    : 'Tente ajustar os filtros ou a busca';
+                return;
+            }
+
+            tabelaWrap.style.display = 'block';
+            vazio.style.display = 'none';
+
+            dadosFiltrados.forEach(item => {
+                const data = new Date(item.created_at);
+                const dataFmt = data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                const horaFmt = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+                const iniciais = (item.nome || '?').trim().split(/\s+/).filter(p => p.length > 0).slice(0, 2).map(p => p[0]).join('').toUpperCase() || '?';
+
+                const telLimpo = (item.telefone || '').replace(/\D/g, '');
+                const wppLink = telLimpo ? `https://wa.me/55${telLimpo}` : '#';
+
+                const itemJson = JSON.stringify(item).replace(/'/g, "&#39;").replace(/"/g, '&quot;');
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <div class="nome-cell">
+                            <div class="avatar">${escapar(iniciais)}</div>
+                            <div class="nome-texto">${escapar(item.nome)}</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="whatsapp-cell">
+                            <span class="whatsapp-texto">${escapar(item.telefone)}</span>
+                            ${telLimpo ? `<a href="${wppLink}" target="_blank" class="btn-wpp" title="Abrir WhatsApp">💬</a>` : ''}
+                        </div>
+                    </td>
+                    <td class="msg-cell">
+                        ${item.mensagem
+                            ? `<div class="msg-preview" title="${escapar(item.mensagem)}">"${escapar(item.mensagem)}"</div>`
+                            : `<span class="msg-vazia">—</span>`}
+                    </td>
+                    <td>
+                        <div class="data-cell">
+                            <span class="hora">${horaFmt}</span>
+                            ${dataFmt}
+                        </div>
+                    </td>
+                    <td class="status-cell"><span class="status-badge">Confirmado</span></td>
+                    <td class="acoes-cell">
+                        <div class="acoes">
+                            <button class="btn-icon btn-ver" title="Ver detalhes" onclick='abrirModal(${itemJson})'>👁</button>
+                            <button class="btn-icon btn-del" title="Excluir" onclick='excluirConfirmacao("${item.id}", "${escapar(item.nome)}", this)'>🗑</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function atualizarStats() {
+            document.getElementById('stat-confirmacoes').textContent = dadosFiltrados.length;
+        }
+
+        async function excluirConfirmacao(id, nome, btnElement) {
+            if (!confirm(`Excluir a confirmação de "${nome}"?\n\nEssa ação não pode ser desfeita.`)) return;
+
+            if (btnElement) {
+                btnElement.disabled = true;
+                btnElement.textContent = '⏳';
+            }
+
+            try {
+                const { error, data } = await _supabase
+                    .from('confirmacoes').delete().eq('id', id).select();
+
+                if (error) {
+                    console.error('Erro ao excluir:', error);
+                    mostrarToast('❌ Erro: ' + error.message, 'erro');
+                    if (btnElement) {
+                        btnElement.disabled = false;
+                        btnElement.textContent = '🗑';
+                    }
+                    return;
+                }
+
+                if (!data || data.length === 0) {
+                    mostrarToast('❌ Não foi possível excluir. Verifique as permissões no Supabase.', 'erro');
+                    if (btnElement) {
+                        btnElement.disabled = false;
+                        btnElement.textContent = '🗑';
+                    }
+                    return;
+                }
+
+                mostrarToast('✅ Confirmação excluída!', 'sucesso');
+                await carregarDados();
+            } catch (e) {
+                console.error('Erro inesperado:', e);
+                mostrarToast('❌ Erro inesperado ao excluir', 'erro');
+                if (btnElement) {
+                    btnElement.disabled = false;
+                    btnElement.textContent = '🗑';
+                }
+            }
+        }
+
+        function abrirModal(item) {
+            if (typeof item === 'string') item = JSON.parse(item);
+
+            const iniciais = (item.nome || '?').trim().split(/\s+/).filter(p => p.length > 0).slice(0, 2).map(p => p[0]).join('').toUpperCase() || '?';
+
+            document.getElementById('modal-avatar').textContent = iniciais;
+            document.getElementById('modal-nome').textContent = item.nome;
+            document.getElementById('modal-tel').textContent = item.telefone;
+
+            const dataFull = new Date(item.created_at);
+            const dataStr = dataFull.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+            const horaStr = dataFull.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('modal-data').innerHTML = `${dataStr}<br><strong>${horaStr}</strong>`;
+
+            const msgWrap = document.getElementById('modal-msg-wrap');
+            const msgEl = document.getElementById('modal-msg');
+            if (item.mensagem && item.mensagem.trim()) {
+                msgEl.textContent = item.mensagem;
+                msgEl.classList.remove('sem-aspas');
+                msgWrap.style.display = 'block';
+            } else {
+                msgEl.textContent = 'O convidado não deixou mensagem.';
+                msgEl.classList.add('sem-aspas');
+                msgWrap.style.display = 'block';
+            }
+
+            const telLimpo = (item.telefone || '').replace(/\D/g, '');
+            const wpp = document.getElementById('modal-wpp');
+            if (telLimpo) {
+                wpp.href = `https://wa.me/55${telLimpo}`;
+                wpp.style.display = 'inline-flex';
+            } else {
+                wpp.style.display = 'none';
+            }
+
+            document.getElementById('modal').classList.add('ativo');
+        }
+
+        function fecharModal(e) {
+            if (e && e.target.id !== 'modal') return;
+            document.getElementById('modal').classList.remove('ativo');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') document.getElementById('modal').classList.remove('ativo');
+        });
+
+        function exportarCSV() {
+            if (dadosFiltrados.length === 0) {
+                mostrarToast('Não há dados para exportar', 'erro');
+                return;
+            }
+
+            let csv = 'Nome,Telefone,Mensagem,Status,Data\n';
+            dadosFiltrados.forEach(item => {
+                const data = new Date(item.created_at).toLocaleString('pt-BR');
+                const msg = (item.mensagem || '').replace(/"/g, '""').replace(/\n/g, ' ');
+                csv += `"${item.nome}","${item.telefone}","${msg}","Confirmado","${data}"\n`;
+            });
+
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `confirmacoes-maria-laura-${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        function escapar(texto) {
+            if (!texto) return '';
+            const div = document.createElement('div');
+            div.textContent = texto;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
